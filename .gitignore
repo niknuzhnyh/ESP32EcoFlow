@@ -1,0 +1,29 @@
+# PlatformIO project files
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# IDE / Editor configuration
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Operating System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Compiled binaries and temporary build files
+*.bin
+*.elf
+*.hex
+*.o
+*.d
+*.map
+
+# Local secret / backup configs
+secrets.h
+config.local.json
+*.local
