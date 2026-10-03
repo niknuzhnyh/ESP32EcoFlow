@@ -28,16 +28,20 @@ void NetworkManager::begin() {
 
 void NetworkManager::startApMode() {
     const auto& cfg = ConfigManager::instance().get();
-    WiFi.disconnect();
+    WiFi.disconnect(true);
+    delay(100);
     WiFi.mode(WIFI_AP);
 
+    IPAddress apIP(192, 168, 4, 1);
+    IPAddress netMsk(255, 255, 255, 0);
+    WiFi.softAPConfig(apIP, apIP, netMsk);
+
     if (cfg.ap_password.length() >= 8) {
-        WiFi.softAP(cfg.ap_ssid.c_str(), cfg.ap_password.c_str());
+        WiFi.softAP(cfg.ap_ssid.c_str(), cfg.ap_password.c_str(), 1, 0, 4);
     } else {
-        WiFi.softAP(cfg.ap_ssid.c_str());
+        WiFi.softAP(cfg.ap_ssid.c_str(), nullptr, 1, 0, 4);
     }
 
-    IPAddress apIP = WiFi.softAPIP();
     Serial.printf("[Network] AP Started: SSID '%s', IP: %s\n", cfg.ap_ssid.c_str(), apIP.toString().c_str());
 
     // Start Captive Portal DNS on port 53 (redirect all queries to SoftAP IP)
@@ -89,7 +93,9 @@ void NetworkManager::tick() {
     uint32_t now = millis();
 
     if (_state == NET_AP_PORTAL) {
-        _dnsServer.processNextRequest();
+        for (int i = 0; i < 5; i++) {
+            _dnsServer.processNextRequest();
+        }
         return;
     }
 

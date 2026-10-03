@@ -67,19 +67,35 @@ void WebServerManager::setupRoutes() {
     });
 
     // Captive Portal probes
-    _server.on("/generate_204", HTTP_GET, [this]() { handleRoot(); });
-    _server.on("/gen_204", HTTP_GET, [this]() { handleRoot(); });
-    _server.on("/ncsi.txt", HTTP_GET, [this]() { _server.send(200, "text/plain", "Microsoft NCSI"); });
+    _server.on("/generate_204", HTTP_GET, [this]() {
+        Serial.println("[WebServer] Probe /generate_204 -> Redirecting to root");
+        _server.sendHeader("Location", "http://192.168.4.1/", true);
+        _server.sendHeader("Connection", "close");
+        _server.send(302, "text/html", "<html><body>Redirecting to setup...</body></html>");
+    });
+    _server.on("/gen_204", HTTP_GET, [this]() {
+        Serial.println("[WebServer] Probe /gen_204 -> Redirecting to root");
+        _server.sendHeader("Location", "http://192.168.4.1/", true);
+        _server.sendHeader("Connection", "close");
+        _server.send(302, "text/html", "<html><body>Redirecting to setup...</body></html>");
+    });
+    _server.on("/ncsi.txt", HTTP_GET, [this]() {
+        _server.sendHeader("Connection", "close");
+        _server.send(200, "text/plain", "Microsoft NCSI");
+    });
     _server.on("/connecttest.txt", HTTP_GET, [this]() { handleRoot(); });
     _server.on("/hotspot-detect.html", HTTP_GET, [this]() { handleRoot(); });
+    _server.on("/canonical.html", HTTP_GET, [this]() { handleRoot(); });
 
     // Catch-all
     _server.onNotFound([this]() { handleNotFound(); });
 }
 
 void WebServerManager::handleRoot() {
-    _server.sendHeader("Content-Type", "text/html; charset=utf-8");
-    _server.send(200, "text/html", INDEX_HTML);
+    Serial.println("[WebServer] GET / - Serving Web UI (INDEX_HTML)");
+    _server.sendHeader("Connection", "close");
+    _server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    _server.send_P(200, "text/html; charset=utf-8", INDEX_HTML);
 }
 
 void WebServerManager::handleStatus() {
@@ -110,11 +126,15 @@ void WebServerManager::handleStatus() {
 
     String response;
     serializeJson(doc, response);
+    _server.sendHeader("Connection", "close");
+    _server.sendHeader("Cache-Control", "no-cache");
     _server.send(200, "application/json", response);
 }
 
 void WebServerManager::handleGetConfig() {
     String jsonStr = ConfigManager::instance().serializeJson(true);
+    _server.sendHeader("Connection", "close");
+    _server.sendHeader("Cache-Control", "no-cache");
     _server.send(200, "application/json", jsonStr);
 }
 
@@ -155,12 +175,13 @@ void WebServerManager::handleFactoryReset() {
 }
 
 void WebServerManager::handleNotFound() {
+    Serial.printf("[WebServer] handleNotFound: URI=%s, Host=%s\n", _server.uri().c_str(), _server.hostHeader().c_str());
+
     if (NetworkManager::instance().isApMode()) {
-        String url = "http://";
-        url += NetworkManager::instance().getIpAddress();
-        url += "/";
+        String url = "http://192.168.4.1/";
         _server.sendHeader("Location", url, true);
-        _server.send(302, "text/plain", "");
+        _server.sendHeader("Connection", "close");
+        _server.send(302, "text/html", "<html><head><meta http-equiv='refresh' content='0;url=" + url + "'></head><body>Redirecting to <a href='" + url + "'>" + url + "</a></body></html>");
         return;
     }
     _server.send(404, "text/plain", "404 Not Found");
