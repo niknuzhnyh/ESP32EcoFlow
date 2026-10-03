@@ -4,28 +4,28 @@
 
 enum LedMode {
     LED_OFF,
-    LED_POWER_OK,          // Solid / soft pulse green
-    LED_POWER_LOST_WAIT,   // Pulsing / blinking red (1s)
-    LED_POWER_LOST_ALARM,  // Fast blinking red (250ms)
-    LED_WIFI_CONNECTING,   // Blinking blue (500ms)
-    LED_AP_PORTAL,         // Solid amber/yellow
-    LED_SENDING_NOTIF      // Single flash cyan
+    LED_POWER_OK,          // Solid ON: Power is normal
+    LED_POWER_LOST_WAIT,   // Slow blink (1s): Power lost, waiting 10m
+    LED_POWER_LOST_ALARM,  // Fast strobe (250ms): 10m alarm active
+    LED_WIFI_CONNECTING,   // Rapid blink (500ms): Connecting to Wi-Fi
+    LED_AP_PORTAL,         // Beacon pulse (1s): SoftAP mode
+    LED_SENDING_NOTIF      // Single flash: Request sent
 };
 
 class StatusLed {
 public:
     static StatusLed& instance();
 
-    void begin(uint8_t pin = 21);
+    void begin(uint8_t pin = 2);
     void setMode(LedMode mode);
     void flashNotification();
     void tick();
 
 private:
     StatusLed() = default;
-    void setColor(uint8_t r, uint8_t g, uint8_t b);
+    void setLed(bool on);
 
-    uint8_t _pin = 21;
+    uint8_t _pin = 2;
     LedMode _mode = LED_OFF;
     uint32_t _lastTick = 0;
     bool _flashActive = false;

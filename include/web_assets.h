@@ -95,7 +95,7 @@ textarea { min-height: 70px; resize: vertical; }
       <div class="brand-icon">⚡</div>
       <div>
         <h1>ESP32 Монітор Напруги</h1>
-        <span id="headerSub">Waveshare ESP32-S3-Zero</span>
+        <span id="headerSub">ESP32 DevKit V1 (ESP-WROOM-32)</span>
       </div>
     </div>
     <div class="nav-tabs">
@@ -247,7 +247,7 @@ textarea { min-height: 70px; resize: vertical; }
           </div>
         </div>
 
-        <div class="section-title" style="margin-top: 25px;">⚙️ Апаратні налаштування (ESP32-S3-Zero)</div>
+        <div class="section-title" style="margin-top: 25px;">⚙️ Апаратні налаштування (ESP32 DevKit V1)</div>
         <div class="form-row">
           <div class="form-group">
             <label>GPIO вхід контролю 5V</label>
@@ -284,7 +284,7 @@ textarea { min-height: 70px; resize: vertical; }
     <div class="card">
       <div class="section-title">🚀 Оновлення прошивки по повітрю (OTA)</div>
       <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:15px;">
-        Оберіть скомпільований бінарний файл прошивки (<code>firmware.bin</code>) для Waveshare ESP32-S3-Zero. Оновлення пройде безпечно через подвійний слот OTA.
+        Оберіть скомпільований бінарний файл прошивки (<code>firmware.bin</code>) для ESP32 DevKit V1 (ESP-WROOM-32). Оновлення пройде безпечно через подвійний слот OTA.
       </p>
       <form method="POST" action="/update" enctype="multipart/form-data" id="otaForm" onsubmit="handleOta(event)">
         <div class="form-group">
@@ -477,7 +477,7 @@ async function triggerTest() {
 }
 
 async function rebootDevice() {
-  if (!confirm('Перезавантажити ESP32-S3?')) return;
+  if (!confirm('Перезавантажити ESP32?')) return;
   try {
     await fetch('/api/reboot', { method: 'POST' });
     showToast('🔄 Пристрій перезавантажується... Будь ласка, зачекайте 10 секунд');

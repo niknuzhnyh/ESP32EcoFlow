@@ -11,11 +11,11 @@ void setup() {
     delay(1000); // Allow USB CDC to initialize on ESP32-S3
 
     Serial.println("\n=========================================");
-    Serial.println("  ESP32-S3-Zero Power Grid Monitor v1.0  ");
+    Serial.println("  ESP32 Power Grid Monitor v1.0 (DevKit V1)  ");
     Serial.println("=========================================");
 
-    // 1. Initialize built-in WS2812 RGB LED (GPIO 21 on Waveshare ESP32-S3-Zero)
-    StatusLed::instance().begin(21);
+    // 1. Initialize built-in Status LED (GPIO 2 on ESP32 DevKit V1)
+    StatusLed::instance().begin(2);
 
     // 2. Initialize LittleFS and Configuration
     if (!ConfigManager::instance().begin()) {
