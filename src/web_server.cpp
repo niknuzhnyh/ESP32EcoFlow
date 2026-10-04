@@ -30,10 +30,15 @@ void WebServerManager::setupRoutes() {
     _server.on("/api/reboot", HTTP_POST, [this]() { handleReboot(); });
     _server.on("/api/factory-reset", HTTP_POST, [this]() { handleFactoryReset(); });
 
+    // Favicon (Return 204 No Content immediately)
+    _server.on("/favicon.ico", HTTP_GET, [this]() {
+        _server.sendHeader("Connection", "close");
+        _server.send(204);
+    });
+
     // OTA firmware update endpoints
     _server.on("/update", HTTP_GET, [this]() {
-        _server.sendHeader("Connection", "close");
-        _server.send(200, "text/html", INDEX_HTML);
+        sendGzipHtml();
     });
 
     _server.on("/update", HTTP_POST, [this]() {
@@ -66,36 +71,55 @@ void WebServerManager::setupRoutes() {
         }
     });
 
-    // Captive Portal probes
-    _server.on("/generate_204", HTTP_GET, [this]() {
-        Serial.println("[WebServer] Probe /generate_204 -> Redirecting to root");
-        _server.sendHeader("Location", "http://192.168.4.1/", true);
-        _server.sendHeader("Connection", "close");
-        _server.send(302, "text/html", "<html><body>Redirecting to setup...</body></html>");
-    });
-    _server.on("/gen_204", HTTP_GET, [this]() {
-        Serial.println("[WebServer] Probe /gen_204 -> Redirecting to root");
-        _server.sendHeader("Location", "http://192.168.4.1/", true);
-        _server.sendHeader("Connection", "close");
-        _server.send(302, "text/html", "<html><body>Redirecting to setup...</body></html>");
-    });
-    _server.on("/ncsi.txt", HTTP_GET, [this]() {
-        _server.sendHeader("Connection", "close");
-        _server.send(200, "text/plain", "Microsoft NCSI");
-    });
-    _server.on("/connecttest.txt", HTTP_GET, [this]() { handleRoot(); });
-    _server.on("/hotspot-detect.html", HTTP_GET, [this]() { handleRoot(); });
-    _server.on("/canonical.html", HTTP_GET, [this]() { handleRoot(); });
+    // Captive Portal probes across all OSes (Windows, Android, Apple iOS/macOS, Firefox)
+    _server.on("/generate_204", HTTP_GET, [this]() { handleCaptiveRedirect(); });
+    _server.on("/gen_204", HTTP_GET, [this]() { handleCaptiveRedirect(); });
+    _server.on("/ncsi.txt", HTTP_GET, [this]() { handleCaptiveRedirect(); });
+    _server.on("/connecttest.txt", HTTP_GET, [this]() { handleCaptiveRedirect(); });
+    _server.on("/redirect", HTTP_GET, [this]() { handleCaptiveRedirect(); });
+    _server.on("/hotspot-detect.html", HTTP_GET, [this]() { handleCaptiveRedirect(); });
+    _server.on("/canonical.html", HTTP_GET, [this]() { handleCaptiveRedirect(); });
+    _server.on("/success.txt", HTTP_GET, [this]() { handleCaptiveRedirect(); });
 
     // Catch-all
     _server.onNotFound([this]() { handleNotFound(); });
 }
 
-void WebServerManager::handleRoot() {
-    Serial.println("[WebServer] GET / - Serving Web UI (INDEX_HTML)");
+void WebServerManager::handleCaptiveRedirect() {
+    String url = "http://192.168.4.1/";
+    String clientIp = _server.client().remoteIP().toString();
+    Serial.printf("[HTTP-Captive] %s from %s (Host: %s) -> 302 Redirect to %s\n", 
+                  _server.uri().c_str(), clientIp.c_str(), _server.hostHeader().c_str(), url.c_str());
+    _server.sendHeader("Location", url, true);
     _server.sendHeader("Connection", "close");
     _server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-    _server.send_P(200, "text/html; charset=utf-8", INDEX_HTML);
+    _server.send(302, "text/html", "<html><head><meta http-equiv='refresh' content='0;url=" + url + "'></head><body>Redirecting to <a href='" + url + "'>" + url + "</a></body></html>");
+}
+
+void WebServerManager::sendGzipHtml() {
+    _server.sendHeader("Content-Encoding", "gzip");
+    _server.sendHeader("Connection", "close");
+    _server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    _server.send_P(200, "text/html; charset=utf-8", (const char*)INDEX_HTML_GZ, INDEX_HTML_GZ_LEN);
+}
+
+void WebServerManager::handleRoot() {
+    String clientIp = _server.client().remoteIP().toString();
+    String host = _server.hostHeader();
+
+    Serial.printf("[HTTP] GET / from %s (Host: %s)\n", clientIp.c_str(), host.c_str());
+
+    if (NetworkManager::instance().isApMode()) {
+        // If request reached root with a foreign host (e.g. www.google.com, www.msftconnecttest.com), redirect to our IP
+        if (host.length() > 0 && host != "192.168.4.1" && host != "power-monitor.local" && !host.startsWith("192.168.4.1:")) {
+            Serial.printf("[WebServer] Redirecting foreign host '%s' to 192.168.4.1\n", host.c_str());
+            handleCaptiveRedirect();
+            return;
+        }
+    }
+
+    sendGzipHtml();
+    Serial.printf("[WebServer] Sent gzipped Web UI (%u bytes) to %s\n", (unsigned int)INDEX_HTML_GZ_LEN, clientIp.c_str());
 }
 
 void WebServerManager::handleStatus() {
@@ -178,10 +202,7 @@ void WebServerManager::handleNotFound() {
     Serial.printf("[WebServer] handleNotFound: URI=%s, Host=%s\n", _server.uri().c_str(), _server.hostHeader().c_str());
 
     if (NetworkManager::instance().isApMode()) {
-        String url = "http://192.168.4.1/";
-        _server.sendHeader("Location", url, true);
-        _server.sendHeader("Connection", "close");
-        _server.send(302, "text/html", "<html><head><meta http-equiv='refresh' content='0;url=" + url + "'></head><body>Redirecting to <a href='" + url + "'>" + url + "</a></body></html>");
+        handleCaptiveRedirect();
         return;
     }
     _server.send(404, "text/plain", "404 Not Found");

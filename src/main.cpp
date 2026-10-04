@@ -5,10 +5,11 @@
 #include "notifier.h"
 #include "network_manager.h"
 #include "web_server.h"
+#include "serial_cli.h"
 
 void setup() {
     Serial.begin(115200);
-    delay(1000); // Allow USB CDC to initialize on ESP32-S3
+    delay(500);
 
     Serial.println("\n=========================================");
     Serial.println("  ESP32 Power Grid Monitor v1.0 (DevKit V1)  ");
@@ -39,7 +40,10 @@ void setup() {
     // 6. Initialize Web Server, Captive Portal, and OTA
     WebServerManager::instance().begin();
 
-    Serial.println("[Main] System initialized and running.");
+    // 7. Initialize Interactive Serial CLI
+    SerialCli::instance().begin();
+
+    Serial.println("[Main] System initialized and ready.");
 }
 
 void loop() {
@@ -48,4 +52,5 @@ void loop() {
     PowerMonitor::instance().tick();
     NetworkManager::instance().tick();
     WebServerManager::instance().tick();
+    SerialCli::instance().tick();
 }

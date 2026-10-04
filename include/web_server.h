@@ -21,6 +21,8 @@ private:
     void handleTestAlert();
     void handleReboot();
     void handleFactoryReset();
+    void handleCaptiveRedirect();
+    void sendGzipHtml();
     void handleNotFound();
 
     WebServer _server{80};
